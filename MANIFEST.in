@@ -1,0 +1,19 @@
+graft src
+graft tests
+
+include .bumpversion.cfg
+include .coveragerc
+include .cookiecutterrc
+include .editorconfig
+
+include CHANGELOG.rst
+include README.rst
+
+include tox.ini
+include .appveyor.yml
+include .readthedocs.yml
+include *-requirements.txt
+
+exclude .gitlab-ci.yml
+
+global-exclude *.py[cod] __pycache__/* *.so *.dylib
