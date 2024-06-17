@@ -9,9 +9,8 @@ from functools import partial
 
 
 class Reaction:
-    
     @staticmethod
-    def get_net_stoich(react,prod):
+    def get_net_stoich(react: dict, prod: dict) -> dict:
         net_s=prod.copy()
         for k,v in react.items():
             if k in net_s:
@@ -21,7 +20,7 @@ class Reaction:
         return net_s
     
     @staticmethod
-    def key_and_stoch_from_string(component):
+    def key_and_stoch_from_string(component: str) -> tuple[str,int]:
         res=re.match("^([0-9]*)(\w*)",component)
         if res is None:
             return None
@@ -32,7 +31,7 @@ class Reaction:
         return (g[1],stoch)
     
     @staticmethod
-    def get_stoich_from_string(a_string_sum):
+    def get_stoich_from_string(a_string_sum: str) -> dict:
         comp=a_string_sum.strip().split('+')
         s_dict={}
         for c in comp:
@@ -41,9 +40,11 @@ class Reaction:
                 s_dict[ks[0]]=ks[1]
         return s_dict
 
-    
     @staticmethod
-    def string_to_reaction(astring):
+    def string_to_reaction(astring: str) -> tuple[dict,dict]:
+        # Remove whitespaces from reaction
+        astring = astring.replace(" ", "")
+        
         react_prod=astring.split(">")
         if len(react_prod)!=2:
             return None
@@ -52,28 +53,46 @@ class Reaction:
         net_dict=Reaction.get_net_stoich(r_dict,p_dict)
         return r_dict,net_dict       
         
-    def __init__(self,name,reaction_string):
+    def __init__(self, name: str, reaction_string: str):
+        """Init
+        
+        Example:
+        >>> r = Reaction('r1','A+B->AB')
+        >>> r.r_stoich
+        {'A': 1, 'B': 1}
+        >>> r.net_stoich
+        {'AB': 1, 'A': -1, 'B': -1}
+
+        
+        """
         self.name=name
         self.r_stoich=dict()
         self.net_stoich=dict()
         self.reaction_string=None
-        s_to_react=Reaction.string_to_reaction(reaction_string)
-        if s_to_react:
-            self.r_stoich,self.net_stoich=s_to_react
-            self.reaction_string=reaction_string
         
-    def get_mol_r_stoich(self,name):
-        if name in self.r_stoich:
-            return self.r_stoich[name]
+        s_to_react = Reaction.string_to_reaction(reaction_string)
+        if s_to_react:
+            self.r_stoich, self.net_stoich = s_to_react
+            self.reaction_string = reaction_string
+        
+    def get_mol_r_stoich(self, molecule: str):
+        """Returns the number of the molecule in the reactant"""
+        if molecule in self.r_stoich:
+            return self.r_stoich[molecule]
         return 0
     
-    def get_mol_net_stoich(self,name):
-        if name in self.net_stoich:
-            return self.net_stoich[name]
+    def get_mol_net_stoich(self, molecule: str):
+        """Returns the number of the molecule in the netto stoichiometry"""
+        if molecule in self.net_stoich:
+            return self.net_stoich[molecule]
         return 0
    
     def get_molecule_names(self):
+        """Return a dictonary of the molecules in the reaction"""
         return set(self.r_stoich.keys()).union(set(self.net_stoich.keys()))
+    
+    def __repr__(self):
+        return f"Name: {self.name}. Reaction string: {self.reaction_string}"
 
 
 class Reactions:
