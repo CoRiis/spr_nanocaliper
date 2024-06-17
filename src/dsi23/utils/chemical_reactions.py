@@ -6,6 +6,7 @@ import jax.numpy as jnp
 # from jax.random import PRNGKey
 import re
 from functools import partial
+from typing import Callable
 
 
 class Reaction:
@@ -96,7 +97,6 @@ class Reaction:
 
 
 class Reactions:
-
     def __init__(self, use='jnp'):
         self.reactions = {}
         self.molecule_i = {}  # molecule name to index
@@ -117,9 +117,10 @@ class Reactions:
         for i, key in enumerate(self.reactions.keys()):
             self.reaction_i[key] = i
 
-    def add(self, name, reaction_string):
+    def add(self, name: str, reaction_string: str):
         if name in self.reactions:
             return None
+
         r_ok = Reaction(name, reaction_string)
         if not r_ok.reaction_string:
             return None
@@ -127,12 +128,14 @@ class Reactions:
         self._update()
         return r_ok
 
-    def get_conc_as_vec(self, molecule_conc):
+    def get_conc_as_vec(self, molecule_conc: dict[str, float]):
+        """Converts the dictonary molecule_conc into a vector, using the indexing of the molecules in this object."""
         if self._use == 'jnp':
             return jnp.stack([0 if key not in molecule_conc else molecule_conc[key] for key in self.molecule_i.keys()])
         return np.stack([0 if key not in molecule_conc else molecule_conc[key] for key in self.molecule_i.keys()])
 
-    def get_conc_as_dict(self, molecule_conc):
+    def get_conc_as_dict(self, molecule_conc: list[float]) -> dict[str, float]:
+        """Converts the vector molecule_conc into the dictionary, using the indexing of the molecules in this object."""
         conc_as_dict = dict()
         for k, i in self.molecule_i.items():
             if i < len(molecule_conc):
@@ -141,12 +144,14 @@ class Reactions:
                 conc_as_dict[k] = 0.0
         return conc_as_dict
 
-    def get_rates_as_vec(self, rates):
+    def get_rates_as_vec(self, rates: dict[str, float]):
+        """Converts the dictonary rates into a vector, using the indexing of the molecules in this object."""
         if self._use == 'jnp':
             return jnp.stack([0.0 if key not in rates else rates[key] for key in self.reaction_i.keys()])
         return np.stack([0.0 if key not in rates else rates[key] for key in self.reaction_i.keys()])
 
-    def get_rates_as_dict(self, rates):
+    def get_rates_as_dict(self, rates: list[float]) -> dict[str, float]:
+        """Converts the vector rates into the dictionary, using the indexing of the molecules in this object."""
         rates_as_dict = dict()
         for k, i in self.reaction_i.items():
             if i < len(rates):
@@ -164,6 +169,9 @@ class Reactions:
     def __len__(self):
         return len(self.reactions)
 
+    def __repr__(self):
+        return f"Reactions: {self.reactions}\nMolecule index: {self.molecule_i}\nReaction index: {self.reaction_i}"
+
     def print_stochiometry(self):
         for name, react in self.reactions.items():
             print(name + ':')
@@ -176,8 +184,7 @@ class Reactions:
 
 
 class ODE:
-
-    def __init__(self, reactions):
+    def __init__(self, reactions: Reactions):
         self.R = reactions
         self._use = reactions._use
         self.concentration_functions = dict()
@@ -187,12 +194,22 @@ class ODE:
         self.dyn_reaction_i = dict()  # map from dynamic reactions (those governed by ODE) to index
         self._update()
 
-    def get_dyn_conc_as_vec(self, molecule_conc):
+    @staticmethod
+    def get_length(obj):
+        try:
+            length = len(obj)
+        except TypeError:
+            length = 1
+        return length
+
+    def get_dyn_conc_as_vec(self, molecule_conc: dict[str, float]):
+        """Converts the dictonary molecule_conc into a vector, using the indexing of the molecules in this object."""
         if self._use == 'jnp':
             return jnp.stack([0 if key not in molecule_conc else molecule_conc[key] for key in self.dyn_molecule_i.keys()])
         return np.stack([0 if key not in molecule_conc else molecule_conc[key] for key in self.dyn_molecule_i.keys()])
 
-    def get_dyn_conc_as_dict(self, molecule_conc):
+    def get_dyn_conc_as_dict(self, molecule_conc: list[float]) -> dict[str, float]:
+        """Converts the vector molecule_conc into the dictionary, using the indexing of the molecules in this object."""
         conc_as_dict = dict()
         for k, i in self.dyn_molecule_i.items():
             if i < len(molecule_conc):
@@ -201,12 +218,14 @@ class ODE:
                 conc_as_dict[k] = 0.0
         return conc_as_dict
 
-    def get_dyn_rates_as_vec(self, rates):
+    def get_dyn_rates_as_vec(self, rates: dict[str, float]):
+        """Converts the dictonary rates into a vector, using the indexing of the molecules in this object."""
         if self._use == 'jnp':
             return jnp.stack([0.0 if key not in rates else rates[key] for key in self.dyn_reaction_i.keys()])
         return np.stack([0.0 if key not in rates else rates[key] for key in self.dyn_reaction_i.keys()])
 
-    def get_dyn_rates_as_dict(self, rates):
+    def get_dyn_rates_as_dict(self, rates: list[float]) -> dict[str, float]:
+        """Converts the vector rates into the dictionary, using the indexing of the molecules in this object."""
         rates_as_dict = dict()
         for k, i in self.dyn_reaction_i.items():
             if i < len(rates):
@@ -216,11 +235,13 @@ class ODE:
         return rates_as_dict
 
     def _update(self):
+        # if molecule is not in dynamic molecules, add it
         self.dyn_molecule_i = dict()
         for k in self.R.molecule_i.keys():
             if k not in self.concentration_functions:
                 self.dyn_molecule_i[k] = len(self.dyn_molecule_i)
 
+        # if reactions is not in dynamic reactions, add it
         self.dyn_reaction_i = dict()
         for k in self.R.reaction_i.keys():
             if k not in self.reaction_functions or not self._remove_rate_index[k]:
@@ -252,15 +273,15 @@ class ODE:
 
         self._embed_func_val = embed_func
 
-    # function that maps from time to concentration value for a given molecule
-    def add_concentration_function(self, molecule, function):
+    def add_concentration_function(self, molecule: str, function: Callable[float, float]):
+        """Add function that maps from time to concentration value for a given molecule"""
         if not molecule in self.R.molecule_i:
             return
         self.concentration_functions[molecule] = function
         self._update()
 
-    # function that maps from time to reaction rate for a given reaction
-    def add_reaction_function(self, reaction, function, remove_rate_index=True):
+    def add_reaction_function(self, reaction: str, function: Callable[float, float], remove_rate_index: bool = True):
+        """Add function that maps from time to reaction rate for a given reaction"""
         if not reaction in self.R.reactions:
             return
         self.reaction_functions[reaction] = function
@@ -268,6 +289,7 @@ class ODE:
         self._update()
 
     def dy_dt(self, y, t, *rates):
+        """returns the dy_dt in either numpy or jax.numpy"""
         if self._use == 'jnp':
             return self.dy_dt_jnp(y, t, *rates)
         return self.dy_dt_np(y, t, *rates)
@@ -280,13 +302,9 @@ class ODE:
             # can be expanded to be function of concentrations as well
             conc = conc + jnp.dot(self._embed_func_val, f_conc)
 
-        # print(conc)
-        # print("1")
         i = 0
         dydt_val = jnp.zeros(len(self.dyn_molecule_i))
         s_rates, = rates  # rates[...,:]
-        # print("2")
-        # print(s_rates)
         for key, react in self.R.reactions.items():  # loop over reactions
             if key in self.reaction_functions:
                 thisrate = self.reaction_functions[key](t)
@@ -307,7 +325,28 @@ class ODE:
         # print("Returning dydt_val...")
         return dydt_val
 
-    def dy_dt_np(self, y, t, *rates):
+    # def dy_dt_np(self, y: np.ndarray, t: float, *rates: float) -> np.ndarray:
+    def dy_dt_np(self, y: np.ndarray, t: float, *rates: float) -> np.ndarray:
+        """
+        Calculates the derivative of the concentration of each dynamic molecule with respect to time, given the current 
+        concentrations of all molecules, the current time, and the current reaction rates.
+
+        Args:
+        - self: an instance of the ODE class
+        - y: a numpy array of the current concentrations of all molecules
+        - t: a float representing the current time
+        - *rates: a variable number of floats representing the current reaction rates
+
+        Returns:
+        - dydt_val: a numpy array of the same shape as y, representing the derivative of the concentration of each dynamic 
+        molecule with respect to time
+        """
+
+        #assert self.get_length(y) == len(
+        #    self.dyn_molecule_i), "Dimension of y does not match number of dynamic molecules"
+        assert self.get_length(rates) == len(
+            self.R.reactions), "Number of rate arguments does not match number of dynamic reactions"
+
         conc = np.dot(self._embed_dyn_val, y)
         if len(self.concentration_functions) > 0:
             f_conc = np.stack([fun(t) for fun in self.concentration_functions.values()])
@@ -330,37 +369,44 @@ class ODE:
                 for mol, p in react.r_stoich.items():
                     # law of mass action
                     thisrate = thisrate * conc[self.R.molecule_i[mol]]**p
+
             for net_mol, net_mult in react.net_stoich.items():
                 if net_mol in self.dyn_molecule_i:
                     dyn_i = self.dyn_molecule_i[net_mol]
                     dydt_val[dyn_i] += net_mult * thisrate
+
         # print("Returning dydt_val...")
         return dydt_val
+
+    def __repr__(self):
+        return f"ODE(reactions={self.R}, use='{self._use}',\n" \
+               f"concentration_functions={self.concentration_functions},\n" \
+               f"reaction_functions={self.reaction_functions},\n" \
+               f"dyn_molecule_i={self.dyn_molecule_i},\n" \
+               f"dyn_reaction_i={self.dyn_reaction_i})"
 
 
 # Helper functions to set concentration profiles
 
-def get_heaviside_fun(threshold, sharpness, value=1.0, use='jnp'):
-
+def get_heaviside_fun(threshold,sharpness,value=1.0,use='jnp'):
+    
     def lambda_heavy_jnp(t):
-        return 0.5 * value * (jnp.tanh((t - threshold) / sharpness) + 1)
-
+        return 0.5*value*(jnp.tanh((t-threshold)/sharpness)+1)
     def lambda_heavy_np(t):
-        return 0.5 * value * (np.tanh((t - threshold) / sharpness) + 1)
-
-    if use == 'jnp':
+        return 0.5*value*(np.tanh((t-threshold)/sharpness)+1)
+    
+    if use=='jnp':
         return lambda_heavy_jnp
     return lambda_heavy_np
 
-
-def get_located_fun(thresholds, sharpness, value=1.0, use='jnp'):
+def get_located_fun(thresholds,sharpness,value=1.0,use='jnp'):
     def lambda_located_jnp(t):
-        return 0.25 * value * (jnp.tanh((t - thresholds[0]) / sharpness) + 1) * (jnp.tanh((thresholds[1] - t) / sharpness) + 1)
-
+        return 0.25*value*(jnp.tanh((t-thresholds[0])/sharpness)+1)*(jnp.tanh((thresholds[1]-t)/sharpness)+1)
+    
     def lambda_located_np(t):
-        return 0.25 * value * (np.tanh((t - thresholds[0]) / sharpness) + 1) * (jnp.tanh((thresholds[1] - t) / sharpness) + 1)
-
-    if use == 'jnp':
+        return 0.25*value*(np.tanh((t-thresholds[0])/sharpness)+1)*(jnp.tanh((thresholds[1]-t)/sharpness)+1)
+   
+    if use=='jnp':
         return lambda_located_jnp
     return lambda_located_np
 
