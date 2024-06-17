@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import odeint as odeint_np
 import scipy.optimize
+from numpy.random import lognormal
 
 
 class SPRFitter:
@@ -206,3 +207,14 @@ class SPRFitter:
             else:
                 curve = np.concatenate((curve, z_observed))
         return curve
+
+
+# poor mans version of bounded lognmoral
+def bound_lognormal(logmean: float, logstd: float, bounds: list[float, float] = None):
+    if bounds is None:
+        return lognormal(logmean, logstd)
+    minx, maxx = bounds
+    while True:
+        ret = lognormal(logmean, logstd)
+        if ret > minx and ret < maxx:
+            return ret
