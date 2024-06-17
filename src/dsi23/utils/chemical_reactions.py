@@ -1,11 +1,6 @@
 import numpy as np
-# from scipy.integrate import odeint as odeint_np
-# from jax.experimental.ode import odeint as odeint_jnp
 import jax.numpy as jnp
-# from jax import jit
-# from jax.random import PRNGKey
 import re
-from functools import partial
 from typing import Callable
 
 
@@ -342,8 +337,6 @@ class ODE:
         molecule with respect to time
         """
 
-        #assert self.get_length(y) == len(
-        #    self.dyn_molecule_i), "Dimension of y does not match number of dynamic molecules"
         assert self.get_length(rates) == len(
             self.R.reactions), "Number of rate arguments does not match number of dynamic reactions"
 
@@ -387,26 +380,26 @@ class ODE:
 
 
 # Helper functions to set concentration profiles
-
-def get_heaviside_fun(threshold,sharpness,value=1.0,use='jnp'):
-    
+def get_heaviside_fun(threshold, sharpness, value=1.0, use='jnp'):
     def lambda_heavy_jnp(t):
-        return 0.5*value*(jnp.tanh((t-threshold)/sharpness)+1)
+        return 0.5 * value * (jnp.tanh((t - threshold) / sharpness) + 1)
+
     def lambda_heavy_np(t):
-        return 0.5*value*(np.tanh((t-threshold)/sharpness)+1)
-    
-    if use=='jnp':
+        return 0.5 * value * (np.tanh((t - threshold) / sharpness) + 1)
+
+    if use == 'jnp':
         return lambda_heavy_jnp
     return lambda_heavy_np
 
-def get_located_fun(thresholds,sharpness,value=1.0,use='jnp'):
+
+def get_located_fun(thresholds, sharpness, value=1.0, use='jnp'):
     def lambda_located_jnp(t):
-        return 0.25*value*(jnp.tanh((t-thresholds[0])/sharpness)+1)*(jnp.tanh((thresholds[1]-t)/sharpness)+1)
-    
+        return 0.25 * value * (jnp.tanh((t - thresholds[0]) / sharpness) + 1) * (jnp.tanh((thresholds[1] - t) / sharpness) + 1)
+
     def lambda_located_np(t):
-        return 0.25*value*(np.tanh((t-thresholds[0])/sharpness)+1)*(jnp.tanh((thresholds[1]-t)/sharpness)+1)
-   
-    if use=='jnp':
+        return 0.25 * value * (np.tanh((t - thresholds[0]) / sharpness) + 1) * (jnp.tanh((thresholds[1] - t) / sharpness) + 1)
+
+    if use == 'jnp':
         return lambda_located_jnp
     return lambda_located_np
 
