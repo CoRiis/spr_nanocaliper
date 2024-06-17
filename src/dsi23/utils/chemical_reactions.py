@@ -268,14 +268,14 @@ class ODE:
 
         self._embed_func_val = embed_func
 
-    def add_concentration_function(self, molecule: str, function: Callable[float, float]):
+    def add_concentration_function(self, molecule: str, function: Callable[[float], float]):
         """Add function that maps from time to concentration value for a given molecule"""
         if not molecule in self.R.molecule_i:
             return
         self.concentration_functions[molecule] = function
         self._update()
 
-    def add_reaction_function(self, reaction: str, function: Callable[float, float], remove_rate_index: bool = True):
+    def add_reaction_function(self, reaction: str, function: Callable[[float], float], remove_rate_index: bool = True):
         """Add function that maps from time to reaction rate for a given reaction"""
         if not reaction in self.R.reactions:
             return
