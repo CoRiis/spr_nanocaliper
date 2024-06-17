@@ -13,3 +13,4 @@ jaxlib
 matplotlib
 pandas
 openpyxl
+jupytext
