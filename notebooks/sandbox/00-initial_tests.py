@@ -16,9 +16,7 @@
 import numpy as np
 import os
 
-os.sys.path.append(os.path.dirname(os.path.abspath('../')))
-
-from src.dsi23.utils.chemical_reactions import Reaction, Reactions, ODE
+from dsi23.utils.chemical_reactions import Reaction, Reactions, ODE
 
 
 # +
@@ -226,6 +224,3 @@ def run_tests():
 
 run_tests()
 print("Passed")
-# -
-
-

@@ -6,12 +6,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numpy.random import lognormal
 
-os.sys.path.append(os.path.dirname(os.path.abspath('.')))
-
-from src.dsi23.utils.chemical_reactions import Reactions, ODE, get_located_fun
-from src.dsi23.utils.sprfitter import SPRFitter, bound_lognormal
-from src.dsi23.utils.data import read_SPR_data
-from src.dsi23.utils.viz import plot_curves
+from dsi23.utils.chemical_reactions import Reactions, ODE, get_located_fun
+from dsi23.utils.sprfitter import SPRFitter, bound_lognormal
+from dsi23.utils.data import read_SPR_data
+from dsi23.utils.viz import plot_curves
 
 # %load_ext autoreload
 # %autoreload

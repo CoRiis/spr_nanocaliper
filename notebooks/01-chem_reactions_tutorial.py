@@ -21,9 +21,8 @@
 # +
 import os
 
-os.sys.path.append(os.path.dirname(os.path.abspath('.')))
 
-from src.dsi23.utils.chemical_reactions import Reaction, Reactions, ODE
+from dsi23.utils.chemical_reactions import Reaction, Reactions, ODE
 
 # %load_ext autoreload
 # %autoreload
@@ -136,10 +135,8 @@ for r in rs:
 # %load_ext autoreload
 # %autoreload
 
-from src.dsi23.utils.chemical_reactions import Reaction, Reactions, ODE
+from dsi23.utils.chemical_reactions import Reaction, Reactions, ODE
 # -
 
 ode = ODE(reactions=rs)
 ode
-
-
